@@ -17,6 +17,10 @@ struct game {
 	bool goodBoard = false;
 };
 
+char intToChar(int x) {
+	return static_cast<char>(x);
+}
+
 void drawBoard(game g) {
 	if (g.goodBoard) {
 		cout << g.size << " " << g.pawns << " " << g.whitePawns << " " << g.blackPawns << endl;
@@ -312,6 +316,114 @@ void loadBoard(game &g) {
 	}
 }
 
+void doMove(string buffer, game& g) {
+	string from, to;
+	from += buffer[8];
+	from += buffer[9];
+
+	to += buffer[11];
+	to += buffer[12];
+	bool goodFrom = false;
+	bool goodTo = false;
+
+	for (int i = 0; i < g.ibMaxHeight; i++) {
+		for (int j = 0; j < g.ibMaxWidth; j++) {
+			if (g.IB[i][j].index == from) {
+				goodFrom = true;
+			}
+			if (g.IB[i][j].index == to) {
+				goodTo = true;
+			}
+		}
+	}
+
+	if (!goodFrom) {
+		cout << "BAD_MOVE_" << from << "_IS_WRONG_INDEX" << endl;
+	}
+	else if (!goodTo) {
+		cout << "BAD_MOVE_" << to << "_IS_WRONG_INDEX" << endl;
+	}
+	else {
+		field* f = nullptr, * t = nullptr;
+		for (int i = 0; i < g.maxHeight + 2; i++) {
+			for (int j = 0; j < g.maxWidth + 4; j++) {
+				if (g.IB[i][j].index == from) {
+					f = &g.IB[i][j];
+				}
+				else if (g.IB[i][j].index == to) {
+					t = &g.IB[i][j];
+				}
+			}
+		}
+
+		if (f != nullptr && f->czar == '+') {
+			if (t != nullptr && t->czar != '+') {
+				for (int i = 0; i < g.ibMaxHeight; i++) {
+					for (int j = 0; j < g.ibMaxWidth; j++) {
+						if (g.IB[i][j].index == t->index) {
+							if (f->index[0] < intToChar('a' + g.size) && (t->index[0] == f->index[0] || t->index[0] == intToChar(f->index[0] + 1))) {
+								if (t->czar == '_') {
+									t->czar = g.currentPlayer;
+								}
+								else {
+									;
+								}
+							}
+							else if (f->index[0] == intToChar('a' + g.size) && t->index[0] == f->index[0]) {
+								;
+							}
+							else if (f->index[0] > intToChar('a' + g.size) && (t->index[0] == f->index[0] || t->index[0] == intToChar(f->index[0] - 1))) {
+								;
+							}
+							else {
+								cout << "UNKNOWN_MOVE_DIRECTION" << endl;
+								return;
+							}
+						}
+					}
+				}
+			}
+			else {
+				cout << "BAD_MOVE_" << to << "_IS_WRONG_DESTINATION_FIELD" << endl;
+				return;
+			}
+
+			if (g.currentPlayer == 'W') {
+				g.whiteReserve--;
+			}
+			else {
+				g.blackReserve--;
+			}
+		}
+		else {
+			cout << "BAD_MOVE_"<< from <<"_IS_WRONG_STARTING_FIELD" << endl;
+			return;
+		}
+
+		for (int i = 1; i < g.maxHeight + 1; i++) {
+			for (int j = 2; j < g.maxWidth + 2; j++) {
+				g.array[i - 1][j - 2] = g.IB[i][j].czar;
+			}
+		}
+		cout << "MOVE_COMMITTED" << endl;
+
+		if (g.currentPlayer == 'W') {
+			g.currentPlayer = 'B';
+		}
+		else {
+			g.currentPlayer = 'W';
+		}
+
+		if (g.whiteReserve == 0) {
+			cout << "BLACK_HAS_WON" << endl;
+		}
+		else if (g.blackReserve == 0) {
+			cout << "WHITE_HAS_WON" << endl;
+		}
+
+	}
+
+}
 
 int main() {
 	game letzgo;
@@ -322,7 +434,16 @@ int main() {
 		}
 		else if (buffer == "PRINT_GAME_BOARD") {
 			drawBoard(letzgo);
+			/*for (int i = 0; i < letzgo.ibMaxHeight; i++) {
+				for (int j = 0; j < letzgo.ibMaxWidth; j++) {
+					cout << letzgo.IB[i][j].index;
+				}
+				cout << endl;
+			}*/
 			letzgo.goodBoard = false;
+		}
+		else if (buffer[0] == 'D') {
+			doMove(buffer, letzgo);
 		}
 		
 	}
