@@ -316,7 +316,7 @@ void loadBoard(game &g) {
 	}
 }
 
-bool movingVertical(field* f, field*t, game&g, const int i, const int j) {
+bool movingVertical(field* f, field*t, game &g, const int i, const int j) {
 	int x = 0, y = 0, meter = 0;
 	if (f->index[1] == '1' && t->index[1] == '2') {
 		if (t->czar == '_') {
@@ -375,6 +375,104 @@ bool movingVertical(field* f, field*t, game&g, const int i, const int j) {
 	return true;
 }
 
+bool movingHorizontal(char c, field*t, game &g, const int i, const int j ) {
+	int x = j, y = i, meter = 0;
+	if (c == '+') {
+		if (t->czar == '_') {
+			t->czar = g.currentPlayer;
+		}
+		else {
+			meter = 1;
+			x = j + 2;
+			while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
+				meter++;
+				x += 2;
+			}
+			if (g.IB[y][x].czar == '+') {
+				cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+				return false;
+			}
+			else {
+				for (int k = 0; k < meter; k++) {
+					g.IB[y][x].czar = g.IB[y][x - 2].czar;
+					x -= 2;
+				}
+				g.IB[y][x].czar = g.currentPlayer;
+			}
+
+		}
+	}
+	else if (c == '-') {
+		meter = 1;
+		x = j - 2;
+		while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
+			meter++;
+			x -= 2;
+		}
+		if (g.IB[y][x].czar == '+') {
+			cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+			return false;
+		}
+		else {
+			for (int k = 0; k < meter; k++) {
+				g.IB[y][x].czar = g.IB[y][x + 2].czar;
+				x += 2;
+			}
+			g.IB[y][x].czar = g.currentPlayer;
+		}
+	}
+	return true;
+}
+
+bool diagonalMove(char c, field* t, game& g, const int i, const int j) {
+	int x = j, y = i, meter = 0;
+	if (c == '+') {
+		meter = 1;
+		x = j + 1;
+		y = i + 1;
+		while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
+			meter++;
+			x++;
+			y++;
+		}
+		if (g.IB[y][x].czar == '+') {
+			cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+			return false;
+		}
+		else {
+			for (int k = 0; k < meter; k++) {
+				g.IB[y][x].czar = g.IB[y - 1][x - 1].czar;
+				x--;
+				y--;
+			}
+			g.IB[y][x].czar = g.currentPlayer;
+		}
+	}
+	else if (c == '-') {
+		meter = 1;
+		x = j - 1;
+		y = i - 1;
+		while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
+			meter++;
+			x--;
+			y--;
+		}
+		if (g.IB[y][x].czar == '+') {
+			cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+			return false;
+		}
+		else {
+			for (int k = 0; k < meter; k++) {
+				g.IB[y][x].czar = g.IB[y + 1][x + 1].czar;
+				x++;
+				y++;
+			}
+			g.IB[y][x].czar = g.currentPlayer;
+		}
+	}
+	return true;
+}
+
 void doMove(string buffer, game& g) {
 	string from, to;
 	from += buffer[8];
@@ -427,57 +525,19 @@ void doMove(string buffer, game& g) {
 									}
 								}
 								else {
-									int x = j, y = i, meter = 0;
 									if (f->index[1] == t->index[1]) {
 										if (t->czar == '_') {
 											t->czar = g.currentPlayer;
 										}
 										else {
-											meter = 1;
-											x = j + 1;
-											y = i + 1;
-											while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
-												meter++;
-												x++;
-												y++;
-											}
-											if (g.IB[y][x].czar == '+') {
-												cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+											if (!diagonalMove('+', t, g, i, j)) {
 												return;
-											}
-											else {
-												for (int k = 0; k < meter; k++) {
-													g.IB[y][x].czar = g.IB[y - 1][x - 1].czar;
-													x--;
-													y--;
-												}
-												g.IB[y][x].czar = g.currentPlayer;
 											}
 										}
 									}
 									else if (intToChar(f->index[1]+1) == t->index[1]) {
-										if (t->czar == '_') {
-											t->czar = g.currentPlayer;
-										}
-										else {
-											meter = 1;
-											x = j + 2;
-											while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
-												meter++;
-												x += 2;
-											}
-											if (g.IB[y][x].czar == '+') {
-												cout << "BAD_MOVE_ROW_IS_FULL" << endl;
-												return;
-											}
-											else {
-												for (int k = 0; k < meter; k++) {
-													g.IB[y][x].czar = g.IB[y][x - 2].czar;
-													x-=2;
-												}
-												g.IB[y][x].czar = g.currentPlayer;
-											}
-											
+										if (!movingHorizontal('+', t, g, i, j)) {
+											return;
 										}
 									}
 								}
@@ -500,22 +560,8 @@ void doMove(string buffer, game& g) {
 											t->czar = g.currentPlayer;
 										}
 										else {
-											meter = 1;
-											x = j - 2;
-											while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
-												meter++;
-												x -= 2;
-											}
-											if (g.IB[y][x].czar == '+') {
-												cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+											if (!movingHorizontal('-', t, g, i, j)) {
 												return;
-											}
-											else {
-												for (int k = 0; k < meter; k++) {
-													g.IB[y][x].czar = g.IB[y][x + 2].czar;
-													x += 2;
-												}
-												g.IB[y][x].czar = g.currentPlayer;
 											}
 										}
 									}
@@ -524,25 +570,8 @@ void doMove(string buffer, game& g) {
 											t->czar = g.currentPlayer;
 										}
 										else {
-											meter = 1;
-											x = j - 1;
-											y = i - 1;
-											while (g.IB[y][x].czar != '_' && g.IB[y][x].czar != '+') {
-												meter++;
-												x--;
-												y--;
-											}
-											if (g.IB[y][x].czar == '+') {
-												cout << "BAD_MOVE_ROW_IS_FULL" << endl;
+											if (!diagonalMove('-', t, g, i, j)) {
 												return;
-											}
-											else {
-												for (int k = 0; k < meter; k++) {
-													g.IB[y][x].czar = g.IB[y + 1][x + 1].czar;
-													x++;
-													y++;
-												}
-												g.IB[y][x].czar = g.currentPlayer;
 											}
 										}
 									}
