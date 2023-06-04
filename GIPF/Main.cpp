@@ -72,7 +72,7 @@ void checkConnections(game &g) {
 				while (isInsideBoard(g.maxWidth, g.maxHeight, x, y) && g.array[y][x] == ch && !visited[y][x].right) {
 					visited[y][x].right = true;
 					meter++;
-					if (meter == 4) {
+					if (meter == g.pawns) {
 						g.badRows++;
 					}
 					y++;
@@ -85,7 +85,7 @@ void checkConnections(game &g) {
 				while (isInsideBoard(g.maxWidth, g.maxHeight, x, y) && g.array[y][x] == ch && !visited[y][x].left) {
 					visited[y][x].left = true;
 					meter++;
-					if (meter == 4) {
+					if (meter == g.pawns) {
 						g.badRows++;
 					}
 					y++;
@@ -98,7 +98,7 @@ void checkConnections(game &g) {
 				while (isInsideBoard(g.maxWidth, g.maxHeight, x, y) && g.array[y][x] == ch && !visited[y][x].horizz) {
 					visited[y][x].horizz = true;
 					meter++;
-					if (meter == 4) {
+					if (meter == g.pawns) {
 						g.badRows++;
 					}
 					x+=2;
@@ -473,6 +473,233 @@ bool diagonalMove(char c, field* t, game& g, const int i, const int j) {
 	return true;
 }
 
+void beating(game &g) {
+	int meter = 0;
+
+	for (int i = 0; i < g.ibMaxHeight; i++) {
+		for (int j = 0; j < g.ibMaxWidth; j++) {
+			if (g.IB[i][j].czar == 'W' || g.IB[i][j].czar == 'B') {
+				meter = 1;
+				char cz = g.IB[i][j].czar;
+
+				int x = j + 1, y = i + 1;
+				while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (cz==g.IB[y][x].czar || (meter>=g.pawns && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')))) {
+					meter++;
+					y++;
+					x++;
+				}
+				if (meter >= g.pawns) {
+					y = i;
+					x = j;
+					for (int k = 0; k < meter; k++) {
+						if (g.IB[y][x].czar == 'W' && cz == 'W') {
+							g.whiteReserve++;
+						}
+						if (g.IB[y][x].czar == 'B' && cz == 'B') {
+							g.blackReserve++;
+						}
+						g.IB[y][x].czar = '_';
+						y++;
+						x++;
+					}
+				}
+
+				y = i + 1;
+				x = j - 1;
+				meter = 1;
+				while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (cz == g.IB[y][x].czar || (meter >= g.pawns && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')))) {
+					meter++;
+					y++;
+					x--;
+				}
+				if (meter >= g.pawns) {
+					y = i;
+					x = j;
+					for (int k = 0; k < meter; k++) {
+						if (g.IB[y][x].czar == 'W' && cz == 'W') {
+							g.whiteReserve++;
+						}
+						if (g.IB[y][x].czar == 'B' && cz == 'B') {
+							g.blackReserve++;
+						}
+						g.IB[y][x].czar = '_';
+						y++;
+						x--;
+					}
+
+				}
+
+				y = i;
+				x = j + 2;
+				meter = 1;
+				while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (cz == g.IB[y][x].czar || (meter >= g.pawns && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')))) {
+					meter++;
+					x += 2;
+				}
+				if (meter >= g.pawns) {
+					x -= 2;
+					for (int k = 0; k < meter; k++) {
+						if (g.IB[y][x].czar == 'W' && cz == 'W') {
+							g.whiteReserve++;
+						}
+						if (g.IB[y][x].czar == 'B' && cz == 'B') {
+							g.blackReserve++;
+						}
+						g.IB[y][x].czar = '_';
+						x -= 2;
+					}
+				}
+			}
+		}
+	}
+}
+
+bool hot60(string buff, game &g) {
+	bool here = false;
+	string from, to;
+	from += buff[17];
+	from += buff[18];
+	to += buff[20];
+	to += buff[21];
+	char color = buff[14];
+	char czarek;
+
+	if (color == 'w') {
+		czarek = 'W';
+	}
+	else if (color == 'b') {
+		czarek = 'B';
+	}
+
+	int xf = 0, yf = 0, xt = 0, yt = 0;
+	for (int i = 0; i < g.ibMaxHeight; i++) {
+		for (int j = 0; j < g.ibMaxWidth; j++) {
+			if ((g.IB[i][j].index == from || g.IB[i][j].index == to) && xf == 0 && (g.IB[i][j].czar == 'W' || g.IB[i][j].czar == 'B')) {
+				yf = i;
+				xf = j;
+			}
+			if ((g.IB[i][j].index == to || g.IB[i][j].index == from) && (g.IB[i][j].czar == 'W' || g.IB[i][j].czar == 'B')) {
+				yt = i;
+				xt = j;
+			}
+		}
+	}
+
+	if (yf == 0 || yt == 0) {
+		cout << "WRONG_INDEX_OF_CHOSEN_ROW" << endl;
+		return false;
+	}
+	else if (g.IB[yf][xf].czar != czarek) {
+		cout << "WRONG_COLOR_OF_CHOSEN_ROW" << endl;
+		return false;
+	}
+	else {
+		int meter = 1, x = 0, y = 0;
+
+		y = yf + 1;
+		x = xf + 1;
+		while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')) {
+			meter++;
+			if (g.IB[y][x].index == g.IB[yt][xt].index && meter >=g.pawns) {
+				here = true;
+			}
+			y++;
+			x++;
+		}
+		if (here) {
+			y = yf;
+			x = xf;
+			for (int k = 0; k < meter; k++) {
+				if (g.IB[y][x].czar == 'W' && czarek == 'W') {
+					g.whiteReserve++;
+				}
+				if (g.IB[y][x].czar == 'B' && czarek == 'B') {
+					g.blackReserve++;
+				}
+				g.IB[y][x].czar = '_';
+				y++;
+				x++;
+			}
+			y = yf - 1;
+			x = xf - 1;
+			while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')) {
+				g.IB[y][x].czar = '_';
+				y--;
+				x--;
+			}
+			return true;
+		}
+
+		meter = 1;
+		y = yf + 1;
+		x = xf - 1;
+		while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')) {
+			meter++;
+			if (g.IB[y][x].index == g.IB[yt][xt].index && meter >= g.pawns) {
+				here = true;
+			}
+			y++;
+			x--;
+		}
+		if (here) {
+			y = yf;
+			x = xf;
+			for (int k = 0; k < meter; k++) {
+				if (g.IB[y][x].czar == 'W' && czarek == 'W') {
+					g.whiteReserve++;
+				}
+				if (g.IB[y][x].czar == 'B' && czarek == 'B') {
+					g.blackReserve++;
+				}
+				g.IB[y][x].czar = '_';
+				y++;
+				x--;
+			}
+			y = yf - 1;
+			x = xf + 1;
+			while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')) {
+				g.IB[y][x].czar = '_';
+				y--;
+				x++;
+			}
+			return true;
+		}
+
+		meter = 1;
+		y = yf;
+		x = xf + 2;
+		while(isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')) {
+			meter++;
+			if (g.IB[y][x].index == g.IB[yt][xt].index && meter >= g.pawns) {
+				here = true;
+			}
+			x += 2;
+		}
+		if (here) {
+			y = yf;
+			x = xf;
+			for (int k = 0; k < meter; k++) {
+				if (g.IB[y][x].czar == 'W' && czarek == 'W') {
+					g.whiteReserve++;
+				}
+				if (g.IB[y][x].czar == 'B' && czarek == 'B') {
+					g.blackReserve++;
+				}
+				g.IB[y][x].czar = '_';
+				x += 2;
+			}
+			x = xf - 2;
+			while (isInsideBoard(g.ibMaxWidth, g.ibMaxHeight, x, y) && (g.IB[y][x].czar == 'W' || g.IB[y][x].czar == 'B')) {
+				g.IB[y][x].czar = '_';
+				x -= 2;
+			}
+			return true;
+		}
+	}
+	cout << "WRONG_INDEX_OF_CHOSEN_ROW" << endl;
+	return false;
+}
+
 void doMove(string buffer, game& g) {
 	string from, to;
 	from += buffer[8];
@@ -502,8 +729,8 @@ void doMove(string buffer, game& g) {
 	}
 	else {
 		field* f = nullptr, * t = nullptr;
-		for (int i = 0; i < g.maxHeight + 2; i++) {
-			for (int j = 0; j < g.maxWidth + 4; j++) {
+		for (int i = 0; i < g.ibMaxHeight; i++) {
+			for (int j = 0; j < g.ibMaxWidth; j++) {
 				if (g.IB[i][j].index == from) {
 					f = &g.IB[i][j];
 				}
@@ -602,6 +829,24 @@ void doMove(string buffer, game& g) {
 			return;
 		}
 
+		if (g.currentPlayer == 'W') {
+			g.currentPlayer = 'B';
+		}
+		else {
+			g.currentPlayer = 'W';
+		}
+
+
+		if (buffer.size() > 13) {
+			if (!hot60(buffer, g)) {
+				return;
+			}
+		}
+		else {
+			beating(g);
+
+		}
+
 		for (int i = 1; i < g.maxHeight + 1; i++) {
 			for (int j = 2; j < g.maxWidth + 2; j++) {
 				if (g.IB[i][j].czar != '+') {
@@ -610,13 +855,6 @@ void doMove(string buffer, game& g) {
 			}
 		}
 		cout << "MOVE_COMMITTED" << endl;
-
-		if (g.currentPlayer == 'W') {
-			g.currentPlayer = 'B';
-		}
-		else {
-			g.currentPlayer = 'W';
-		}
 
 		if (g.whiteReserve == 0) {
 			cout << "BLACK_HAS_WON" << endl;
@@ -638,12 +876,6 @@ int main() {
 		}
 		else if (buffer == "PRINT_GAME_BOARD") {
 			drawBoard(letzgo);
-			/*for (int i = 0; i < letzgo.ibMaxHeight; i++) {
-				for (int j = 0; j < letzgo.ibMaxWidth; j++) {
-					cout << letzgo.IB[i][j].index;
-				}
-				cout << endl;
-			}*/
 			letzgo.goodBoard = false;
 		}
 		else if (buffer[0] == 'D') {
